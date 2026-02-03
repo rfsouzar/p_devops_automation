@@ -1,0 +1,122 @@
+Comandos para utilizar com o CLI
+
+===============================================
+
+az group create --name devops-automation --location eastus
+
+===============================================
+
+Definição de váriaveis para utilização
+
+RG=”terraform-demo-rg”
+
+PASSWORD=“********”
+
+LOCATION=”westus2”
+
+==============================================
+
+Criar VMS:
+
+az vm create --resource-group $RG --name vm01 --image Ubuntu2204 --admin-username azureuser --admin-password $PASSWORD --authentication-type password --location $LOCATION
+
+===================================================================
+
+Ver as vms criadas:
+
+az vm list --resource-group $RG --output table
+
+================================================================
+
+Listar os Ips das vms:
+
+az vm list-ip-addresses --resource-group $RG --output table
+
+=============================================================
+
+ver as networks interfaces:
+
+az network nic list --resource-group $RG --output table
+
+===========================================================
+
+Ver os security groups
+
+az network nsg list --resource-group $RG --output table
+
+===========================================================
+
+Ver apenas o IP da vm: (usando query)
+
+az vm list-ip-addresses --resource-group $RG --name vm02 --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" --output tsv
+
+=======================================================
+
+Tranforme em variavel:
+IP_VM02=$(az vm list-ip-addresses --resource-group $RG --name vm02 --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" --output tsv)
+
+=======================================================
+
+Veja a variavel
+
+echo $IP_VM02
+
+=======================================================
+
+deletar vm:
+
+az vm delete --resource-group $RG --name vm02 --yes
+
+=======================================================
+
+deletar resoruce group:
+
+az group delete --name $RG
+
+=======================================================
+
+automatizando criação de Vms
+
+criar arquivo.
+
+Permissão do arquivo:
+
+chmod +x [criar-vms.sh](http://criar-vms.sh/)
+
+=======================================================
+
+retorno em Json das informações da vm
+
+az vm list-ip-addresses --resource terraform-demo-rg --output json
+
+=======================================================
+
+Filtrando o retorno em Json
+
+az vm list-ip-addresses --resource devops-automation --query "[].virtualMachine.{name:name, ip:network.publicIpAddresses[0].ipAddress}" -o json | jq -r '.[] | "\(.name) \(.ip)"'
+
+=======================================================
+
+Usando JQ para filtrar mais a fundo em formato row
+
+az vm list-ip-addresses --resource terraform-demo-rg --query "[].virtualMachine.{name:name, ip:network.publicIpAddresses[0].ipAddress}" -o json | jq -r '.[] | "\(.name) \(.ip)"' > vms-ips.txt
+
+=======================================================
+
+Usando o AWK podemos pegar um valor dentro do arquivo pela coluna
+
+awk '$1 == "vm01" {print $2} vms-ips.txt’
+
+=======================================================
+
+pegando só o status das VMS e adicionando ao arquivo. (LOOP)
+
+for vm in vm01 vm02; do
+az vm get-instance-view \
+--resource-group devops-automation \
+--name $vm \
+--query "instanceView.statuses[?starts_with(code,'PowerState/')].displayStatus" \
+--output tsv >> status.txt
+done
+
+=======================================================
